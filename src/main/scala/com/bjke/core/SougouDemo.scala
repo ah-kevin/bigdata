@@ -4,6 +4,8 @@ import com.hankcs.hanlp.HanLP
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
+import scala.collection.mutable
+
 /**
  * Desc 需求:对SougouSearchLog进行分词并统计如下指标:
  * 1.热门搜索词
@@ -40,13 +42,44 @@ object SougouDemo {
 
     //3。统计指标
     //1. 热门搜索词
-    val result1: Array[(String, Int)] = wordsRDD.map((_, 1))
+    val result1: Array[(String, Int)] = wordsRDD
+      .filter(word => !word.equals(".") && !word.equals("+"))
+      .map((_, 1))
       .reduceByKey(_ + _)
       .sortBy(_._2, false)
       .take(10)
 
-    //4。输出结果
+    //--2.用户热门搜索词(带上用户id)
+    val userIdAndWordRDD: RDD[(String, String)] = sougouRecordRDD.flatMap(record => { //flatMap是一个进去,多个出去(出去之后会被压扁) //360安全卫士==>[360, 安全卫士]
+      val wordsStr: String = record.queryWords.replaceAll("\\[|\\]", "") //360安全卫士
+      import scala.collection.JavaConverters._ //将Java集合转为scala集合
+      val words: mutable.Buffer[String] = HanLP.segment(wordsStr).asScala.map(_.word) //ArrayBuffer(360, 安全卫士)
+      val userId: String = record.userId
+      words.map(word => (userId, word))
+    })
+
+    val result2: Array[((String, String), Int)] = userIdAndWordRDD
+      .filter(t => !t._2.equals(".") && !t._2.equals("+"))
+      .map((_, 1))
+      .reduceByKey(_ + _)
+      .sortBy(_._2, false)
+      .take(10)
+
+    //--3.各个时间段搜索热度
+    val result3: Array[(String, Int)] = sougouRecordRDD.map(record => {
+      val timeStr: String = record.queryTime
+      val hourAndMitunesStr: String = timeStr.substring(0, 5)
+      (hourAndMitunesStr, 1)
+    }).reduceByKey(_ + _)
+      .sortBy(_._2, false)
+      .take(10)
+
+    //4.输出结果
+    result1.foreach(println)
+    result2.foreach(println)
+    result3.foreach(println)
     //5。释放资源
+    sc.stop()
   }
   //准备一个样例类用来封装数据
 

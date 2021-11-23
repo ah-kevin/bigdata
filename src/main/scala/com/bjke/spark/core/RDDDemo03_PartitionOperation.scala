@@ -1,4 +1,4 @@
-package com.bjke.core
+package com.bjke.spark.core
 
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.rdd.RDD

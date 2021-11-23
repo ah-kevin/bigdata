@@ -1,19 +1,14 @@
-package com.bjke.core
-
-import java.lang
+package com.bjke.spark.core
 
 import org.apache.commons.lang3.StringUtils
-import org.apache.spark
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
-import org.apache.spark.util.LongAccumulator
-import org.apache.spark.{SparkConf, SparkContext, broadcast}
+import org.apache.spark.{SparkConf, SparkContext}
 
 /**
  * Author itcast
- * Desc 演示RDD的外部数据源
+ * Desc 演示RDD的基本操作
  */
-object RDDDemo12_DataSource{
+object RDDDemo02_Basic {
   def main(args: Array[String]): Unit = {
     //TODO 0.env/创建环境
     val conf: SparkConf = new SparkConf().setAppName("spark").setMaster("local[*]")
@@ -21,7 +16,7 @@ object RDDDemo12_DataSource{
     sc.setLogLevel("WARN")
 
     //TODO 1.source/加载数据/创建RDD
-    val lines: RDD[String] = sc.textFile("data/input/words.txt")
+    val lines: RDD[String] = sc.textFile("data/input/words.txt") //2
 
     //TODO 2.transformation
     val result: RDD[(String, Int)] = lines.filter(StringUtils.isNoneBlank(_))
@@ -29,10 +24,8 @@ object RDDDemo12_DataSource{
       .map((_, 1))
       .reduceByKey(_ + _)
 
-    //TODO 3.sink/输出
-    result.repartition(1).saveAsTextFile("data/output/result1")
-    result.repartition(1).saveAsObjectFile("data/output/result2")
-    result.repartition(1).saveAsSequenceFile("data/output/result3")
-
+    //TODO 3.sink/输出/action
+    result.foreach(println)
+    result.saveAsTextFile("data/output/result4")
   }
 }
